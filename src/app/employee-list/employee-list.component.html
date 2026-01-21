@@ -1,9 +1,201 @@
-<h1>LF10-Starter</h1>
-Wenn Sie in der EmployeeListComponent.ts ein gültiges Bearer-Token eintragen, sollten hier die Namen der in der Datenbank gespeicherten Mitarbeiter angezeigt werden!
-<ul>
-  @for(e of employees$ | async; track e.id) {
-    <li>
-      {{e.lastName }}, {{e.firstName}}
-    </li>
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">Mitarbeiter-Übersicht</h1>
+    <button class="btn btn-success" (click)="navigateToAdd()">
+      <i class="bi bi-plus-circle"></i> Mitarbeiter hinzufügen
+    </button>
+  </div>
+
+  <div class="mb-3 d-flex gap-2 align-items-start">
+    <input
+      type="text"
+      [formControl]="searchControl"
+      class="form-control"
+      style="max-width: 400px;"
+      placeholder="Mitarbeiter suchen..."
+      aria-label="Mitarbeiter suchen"
+    />
+    <button class="btn btn-outline-primary position-relative" (click)="openFilterModal()">
+      <i class="bi bi-funnel"></i> Filter
+      @if (hasActiveFilters()) {
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+          {{ activeFilterCount() }}
+        </span>
+      }
+    </button>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      {{ errorMessage() }}
+      <button type="button" class="btn-close" (click)="errorMessage.set('')" aria-label="Close"></button>
+    </div>
   }
-</ul>
+
+  @if (isLoading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Lädt...</span>
+      </div>
+      <p class="mt-2">Lädt Mitarbeiter...</p>
+    </div>
+  } @else {
+    @if (filteredEmployees().length === 0) {
+      <div class="alert alert-info text-center">
+        @if (searchTerm()) {
+          <p class="mb-3">Keine Mitarbeiter gefunden, die Ihrer Suche entsprechen.</p>
+        } @else {
+          <p class="mb-3">Keine Mitarbeiter vorhanden.</p>
+          <button class="btn btn-success" (click)="navigateToAdd()">
+            Ersten Mitarbeiter hinzufügen
+          </button>
+        }
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-striped table-hover">
+          <thead class="table-primary">
+            <tr>
+              <th>Name</th>
+              <th>Telefon</th>
+              <th>Adresse</th>
+              <th>Qualifikationen</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (emp of filteredEmployees(); track emp.id) {
+              <tr>
+                <td>{{ emp.firstName }} {{ emp.lastName }}</td>
+                <td>{{ emp.phone }}</td>
+                <td>{{ emp.street }}, {{ emp.postcode }} {{ emp.city }}</td>
+                <td>
+                  @if (emp.skillSet && emp.skillSet.length > 0) {
+                    @for (skillName of getSkillNames(emp); track skillName) {
+                      <span class="badge bg-secondary">{{ skillName }}</span>
+                    }
+                  } @else {
+                    <span class="text-muted">-</span>
+                  }
+                </td>
+                <td>
+                  <div class="btn-group" role="group">
+                    <button (click)="navigateToEdit(emp.id)" class="btn btn-sm btn-primary">
+                      Bearbeiten
+                    </button>
+                    <button (click)="deleteEmployee(emp)" class="btn btn-sm btn-danger">
+                      Löschen
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>
+
+<!-- Filter Modal -->
+@if (showFilterModal()) {
+  <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Filter</h5>
+          <button type="button" class="btn-close" (click)="closeFilterModal()"></button>
+        </div>
+        <div class="modal-body">
+          <form [formGroup]="filterForm">
+
+            <!-- Vorname Filter -->
+            <div class="mb-3">
+              <label for="filterFirstName" class="form-label fw-bold">Vorname</label>
+              <input
+                type="text"
+                class="form-control"
+                id="filterFirstName"
+                formControlName="firstName"
+                placeholder="z.B. Max"
+              />
+              <small class="form-text text-muted">Filter nach Vornamen (Teilübereinstimmung)</small>
+            </div>
+
+            <!-- Nachname Filter -->
+            <div class="mb-3">
+              <label for="filterLastName" class="form-label fw-bold">Nachname</label>
+              <input
+                type="text"
+                class="form-control"
+                id="filterLastName"
+                formControlName="lastName"
+                placeholder="z.B. Mustermann"
+              />
+              <small class="form-text text-muted">Filter nach Nachnamen (Teilübereinstimmung)</small>
+            </div>
+
+            <!-- Stadt Filter -->
+            <div class="mb-3">
+              <label for="filterCity" class="form-label fw-bold">Stadt</label>
+              <input
+                type="text"
+                class="form-control"
+                id="filterCity"
+                formControlName="city"
+                placeholder="z.B. Berlin"
+              />
+              <small class="form-text text-muted">Filter nach Stadt (Teilübereinstimmung)</small>
+            </div>
+
+            <!-- PLZ Filter -->
+            <div class="mb-3">
+              <label for="filterPostcode" class="form-label fw-bold">PLZ</label>
+              <input
+                type="text"
+                class="form-control"
+                id="filterPostcode"
+                formControlName="postcode"
+                placeholder="z.B. 10115"
+              />
+              <small class="form-text text-muted">Filter nach Postleitzahl (Teilübereinstimmung)</small>
+            </div>
+
+            <!-- Skill Filter (nur wenn System Skills unterstützt) -->
+            @if (hasSkillsSupport()) {
+              <div class="mb-3">
+                <label for="filterSkill" class="form-label fw-bold">Qualifikation</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="filterSkill"
+                  formControlName="skill"
+                  placeholder="z.B. Java, Python, Angular"
+                  list="skillSuggestions"
+                />
+                <datalist id="skillSuggestions">
+                  @for (skillName of availableSkillNames(); track skillName) {
+                    <option [value]="skillName">{{ skillName }}</option>
+                  }
+                </datalist>
+                <small class="form-text text-muted">Filter nach Qualifikation (Teilübereinstimmung)</small>
+              </div>
+            }
+
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="resetFilters()">
+            Zurücksetzen
+          </button>
+          <button type="button" class="btn btn-outline-secondary" (click)="closeFilterModal()">
+            Abbrechen
+          </button>
+          <button type="button" class="btn btn-primary" (click)="applyFilters()">
+            Filtern
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
