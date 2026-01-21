@@ -5,7 +5,8 @@ import { Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Employee } from "../model/Employee";
 import { EmployeeService } from "../services/employee.service";
-import { SkillService } from "../services/skill.service";
+import { QualificationsApi } from "../services/qualificationsApi";
+import { Qualification } from "../model/qualification";
 
 interface FilterState {
   firstName: string;
@@ -25,6 +26,7 @@ interface FilterState {
 export class EmployeeListComponent {
   // Data signals
   private employeesSignal = signal<Employee[]>([]);
+  private qualificationsSignal = signal<Qualification[]>([]);
 
   // UI state signals
   isLoading = signal<boolean>(true);
@@ -143,10 +145,22 @@ export class EmployeeListComponent {
 
   constructor(
     private employeeService: EmployeeService,
-    private skillService: SkillService,
+    private qualificationsApi: QualificationsApi,
     private router: Router
   ) {
     this.fetchData();
+    this.fetchQualifications();
+  }
+
+  fetchQualifications(): void {
+    this.qualificationsApi.getAllQualifications().subscribe({
+      next: (qualifications) => {
+        this.qualificationsSignal.set(qualifications);
+      },
+      error: (err) => {
+        console.error('Fehler beim Laden der Qualifikationen:', err);
+      }
+    });
   }
 
   /**
@@ -156,14 +170,20 @@ export class EmployeeListComponent {
     if (!employee.skillSet || employee.skillSet.length === 0) {
       return [];
     }
-    return this.skillService.getSkillNamesByIds(employee.skillSet);
+    const qualifications = this.qualificationsSignal();
+    return employee.skillSet.map(id => {
+      const qual = qualifications.find(q => q.id === Number(id));
+      return qual ? qual.skill : `#${id}`;
+    });
   }
 
   /**
    * Holt alle verfügbaren Skill-Namen für den Filter
    */
   availableSkillNames = computed(() => {
-    return this.skillService.getAllSkillNames();
+    return this.qualificationsSignal()
+      .map(q => q.skill)
+      .sort();
   });
 
   fetchData(): void {

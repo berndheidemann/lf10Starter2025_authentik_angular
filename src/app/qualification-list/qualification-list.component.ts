@@ -2,13 +2,11 @@ import {Component, inject, input, signal, Signal, WritableSignal} from '@angular
 import {Qualification} from "../model/qualification";
 import {QualificationsDataService} from "../services/qualificationsData.service";
 import {FormField, form} from "@angular/forms/signals";
-import { ConfirmationPopupComponent } from "../confirmation-popup/confirmation-popup.component";
 
 @Component({
   selector: 'app-qualification-list',
   imports: [
-    FormField,
-    ConfirmationPopupComponent
+    FormField
   ],
   templateUrl: './qualification-list.component.html',
   styleUrl: './qualification-list.component.css',
