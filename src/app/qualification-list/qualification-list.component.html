@@ -1,0 +1,65 @@
+<div class="container mt-5">
+  <div class="row justify-content-end mb-5">
+    <button class="btn btn-success col-2" (click)="startAddNewQualification()" >+ Qualifikation Anlegen</button>
+  </div>
+  <table class="table table-bordered bg-white">
+    <thead class="table-secondary">
+    <th>
+      Qualifikation
+    </th>
+    <th class="text-end">
+      Aktion
+    </th>
+    </thead>
+    <tbody>
+      @if (addNewQualification) {
+        <tr>
+          <td>
+            <input type="text" [formField]="newQualificationForm.skill" />
+          </td>
+          <td class="text-end">
+            <button class="material-icons btn btn-sm btn-success me-3"
+                    (click)="saveNew()">
+              save
+            </button>
+            <button class="material-icons btn btn-sm btn-danger"
+                    (click)="abortNew()">
+              delete
+            </button>
+          </td>
+        </tr>
+      }
+      @for (qualification of qualifications(); track qualification.id) {
+        @if (isEditQualification(qualification)) {
+          <tr>
+            <td>
+              <input type="text" [formField]="qualificationForm.skill" />
+            </td>
+            <td class="text-end">
+              <button class="material-icons btn btn-sm btn-success"
+                      (click)="saveEdit()">
+                save
+              </button>
+            </td>
+          </tr>
+        } @else {
+        <tr>
+          <td>
+            {{qualification.skill}}
+          </td>
+          <td class="text-end">
+            <button class="material-icons btn btn-sm btn-warning"
+                    (click)="startEdit(qualification)">
+              edit
+            </button>
+            <button class="material-icons btn btn-sm btn-danger ms-3"
+                    (click)="deleteQualification(qualification)">
+              delete
+            </button>
+          </td>
+        </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>

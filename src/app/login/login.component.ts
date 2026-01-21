@@ -1,23 +1,24 @@
 import { Component, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { ReactiveFormsModule, FormControl, FormGroup, Validators } from '@angular/forms';
+import { form as signalForm, FormField } from '@angular/forms/signals';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, FormField],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
 export class LoginComponent {
-  errorMessage = signal<string>('');
-  
-  loginForm = new FormGroup({
-    username: new FormControl('', [Validators.required]),
-    password: new FormControl('', [Validators.required])
+  loginModel = signal({
+    username: '',
+    password: ''
   });
+  
+  loginForm = signalForm(this.loginModel);
+  errorMessage = signal<string>('');
 
   constructor(
     private authService: AuthService,
@@ -25,14 +26,19 @@ export class LoginComponent {
   ) {}
 
   async onLogin() {
-    if (this.loginForm.invalid) {
+    console.log('onLogin called');
+    const formValue = this.loginModel();
+    console.log('Form values:', formValue);
+    
+    if (!formValue.username || !formValue.password) {
       this.errorMessage.set('Bitte geben Sie Benutzername und Passwort ein.');
       return;
     }
 
     this.errorMessage.set('');
     
-    // Starte den OAuth-Flow mit Authentik
+    console.log('Starting OAuth login...');
     await this.authService.login();
+    console.log('OAuth login initiated');
   }
 }

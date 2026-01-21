@@ -3,13 +3,13 @@
     <h1>LF10 Employee Portal</h1>
     <p class="subtitle">Melden Sie sich an, um fortzufahren</p>
     
-    <form [formGroup]="loginForm" (ngSubmit)="onLogin()" class="login-form">
+    <form (ngSubmit)="onLogin()" class="login-form">
       <div class="form-group">
         <label for="username">Benutzername</label>
         <input 
           type="text" 
           id="username" 
-          formControlName="username"
+          [formField]="loginForm.username"
           placeholder="john"
           class="form-input"
         />
@@ -20,7 +20,7 @@
         <input 
           type="password" 
           id="password" 
-          formControlName="password"
+          [formField]="loginForm.password"
           placeholder="••••••••"
           class="form-input"
         />
@@ -30,7 +30,7 @@
         {{ errorMessage() }}
       </div>
 
-      <button type="submit" class="login-button">
+      <button type="button" (click)="onLogin()" class="login-button">
         Anmelden
       </button>
     </form>
