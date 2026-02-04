@@ -1,13 +1,13 @@
 import { Component, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormControl, FormGroup } from '@angular/forms';
+import { form, Field } from '@angular/forms/signals';
 import { Router } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { Employee } from "../model/Employee";
 import { EmployeeService } from "../services/employee.service";
 import { QualificationsApi } from "../services/qualificationsApi";
 import { Qualification } from "../model/qualification";
 
+// Filterfelder für die Erweiterte Suche
 interface FilterState {
   firstName: string;
   lastName: string;
@@ -19,25 +19,33 @@ interface FilterState {
 @Component({
   selector: 'app-employee-list',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, Field],
   templateUrl: './employee-list.component.html',
   styleUrl: './employee-list.component.css'
 })
 export class EmployeeListComponent {
-  // Data signals
+
+  // Daten vom Backend
   private employeesSignal = signal<Employee[]>([]);
   private qualificationsSignal = signal<Qualification[]>([]);
 
-  // UI state signals
-  isLoading = signal<boolean>(true);
-  errorMessage = signal<string>('');
-  showFilterModal = signal<boolean>(false);
+  // UI-Zustände
+  isLoading = signal(true);
+  errorMessage = signal('');
+  showFilterModal = signal(false);
+  showQualDropdown = signal(false);
 
-  // Search control
-  searchControl = new FormControl('', { nonNullable: true });
-  searchTerm = toSignal(this.searchControl.valueChanges, { initialValue: '' });
+  // Erweiterte Suche – Signal Form (wird erst beim Klick "Filtern" angewendet)
+  private filterModel = signal<FilterState>({
+    firstName: '',
+    lastName: '',
+    city: '',
+    postcode: '',
+    skill: ''
+  });
+  filterForm = form(this.filterModel, () => {});
 
-  // Filter state
+  // Aktive Filter – nur bei "Filtern" oder Qualifikationsklick aktualisiert
   activeFilters = signal<FilterState>({
     firstName: '',
     lastName: '',
@@ -46,96 +54,50 @@ export class EmployeeListComponent {
     skill: ''
   });
 
-  // Filter Form Group
-  filterForm = new FormGroup({
-    firstName: new FormControl('', { nonNullable: true }),
-    lastName: new FormControl('', { nonNullable: true }),
-    city: new FormControl('', { nonNullable: true }),
-    postcode: new FormControl('', { nonNullable: true }),
-    skill: new FormControl('', { nonNullable: true })
-  });
-
-  // Prüfe ob das System Skills unterstützt (mindestens ein Mitarbeiter hat skillSet-Feld)
-  hasSkillsSupport = computed(() => {
-    return this.employeesSignal().some(e => e.skillSet !== undefined);
-  });
-
-  // Check if filters are active
-  hasActiveFilters = computed(() => {
-    const filters = this.activeFilters();
-    return filters.firstName.trim() !== '' ||
-           filters.lastName.trim() !== '' ||
-           filters.city.trim() !== '' ||
-           filters.postcode.trim() !== '' ||
-           filters.skill.trim() !== '';
-  });
-
-  // Count active filters
-  activeFilterCount = computed(() => {
-    const filters = this.activeFilters();
+  // Anzahl aktiver Textfilter (für Lupe-Badge)
+  textFilterCount = computed(() => {
+    const f = this.activeFilters();
     let count = 0;
-    if (filters.firstName.trim()) count++;
-    if (filters.lastName.trim()) count++;
-    if (filters.city.trim()) count++;
-    if (filters.postcode.trim()) count++;
-    if (filters.skill.trim()) count++;
+    if (f.firstName.trim()) count++;
+    if (f.lastName.trim()) count++;
+    if (f.city.trim()) count++;
+    if (f.postcode.trim()) count++;
     return count;
   });
 
-  // Computed filtered list (combines search + filters)
+  // Gefilterte Liste – kombiniert Textfilter und Qualifikation
   filteredEmployees = computed(() => {
     let employees = this.employeesSignal();
-    const term = this.searchTerm().toLowerCase().trim();
     const filters = this.activeFilters();
 
-    // Apply search filter
-    if (term) {
-      employees = employees.filter(emp =>
-        emp.firstName.toLowerCase().includes(term) ||
-        emp.lastName.toLowerCase().includes(term) ||
-        emp.phone.toLowerCase().includes(term) ||
-        emp.street.toLowerCase().includes(term) ||
-        emp.city.toLowerCase().includes(term) ||
-        emp.postcode.includes(term)
-      );
-    }
-
-    // Apply advanced filters
+    // Textfilter anwenden
     if (filters.firstName.trim()) {
-      const filterText = filters.firstName.toLowerCase().trim();
       employees = employees.filter(emp =>
-        emp.firstName.toLowerCase().includes(filterText)
+        emp.firstName.toLowerCase().includes(filters.firstName.toLowerCase().trim())
       );
     }
-
     if (filters.lastName.trim()) {
-      const filterText = filters.lastName.toLowerCase().trim();
       employees = employees.filter(emp =>
-        emp.lastName.toLowerCase().includes(filterText)
+        emp.lastName.toLowerCase().includes(filters.lastName.toLowerCase().trim())
       );
     }
-
     if (filters.city.trim()) {
-      const filterText = filters.city.toLowerCase().trim();
       employees = employees.filter(emp =>
-        emp.city.toLowerCase().includes(filterText)
+        emp.city.toLowerCase().includes(filters.city.toLowerCase().trim())
       );
     }
-
     if (filters.postcode.trim()) {
-      const filterText = filters.postcode.trim();
       employees = employees.filter(emp =>
-        emp.postcode.includes(filterText)
+        emp.postcode.includes(filters.postcode.trim())
       );
     }
 
+    // Qualifikationsfilter
     if (filters.skill.trim()) {
-      const filterText = filters.skill.toLowerCase().trim();
       employees = employees.filter(emp => {
         if (!emp.skillSet || emp.skillSet.length === 0) return false;
-        const skillNames = this.getSkillNames(emp);
-        return skillNames.some(skillName =>
-          skillName.toLowerCase().includes(filterText)
+        return this.getSkillNames(emp).some(name =>
+          name.toLowerCase().includes(filters.skill.toLowerCase().trim())
         );
       });
     }
@@ -152,24 +114,18 @@ export class EmployeeListComponent {
     this.fetchQualifications();
   }
 
+  // Qualifikationen vom Backend laden
   fetchQualifications(): void {
     this.qualificationsApi.getAllQualifications().subscribe({
-      next: (qualifications) => {
-        this.qualificationsSignal.set(qualifications);
-      },
-      error: (err) => {
-        console.error('Fehler beim Laden der Qualifikationen:', err);
-      }
+      next: (qualifications) => this.qualificationsSignal.set(qualifications),
+      error: (err) => console.error('Fehler beim Laden der Qualifikationen:', err)
     });
   }
 
-  /**
-   * Mappt Skill-IDs zu Skill-Namen für einen Mitarbeiter
-   */
+  // Skill-IDs eines Mitarbeiters in Namen umwandeln
   getSkillNames(employee: Employee): string[] {
-    if (!employee.skillSet || employee.skillSet.length === 0) {
-      return [];
-    }
+    if (!employee.skillSet || employee.skillSet.length === 0) return [];
+
     const qualifications = this.qualificationsSignal();
     return employee.skillSet.map(id => {
       const qual = qualifications.find(q => q.id === Number(id));
@@ -177,15 +133,12 @@ export class EmployeeListComponent {
     });
   }
 
-  /**
-   * Holt alle verfügbaren Skill-Namen für den Filter
-   */
-  availableSkillNames = computed(() => {
-    return this.qualificationsSignal()
-      .map(q => q.skill)
-      .sort();
-  });
+  // Alle verfügbaren Qualifikationsnamen sortiert (für das Dropdown)
+  availableSkillNames = computed(() =>
+    this.qualificationsSignal().map(q => q.skill).sort()
+  );
 
+  // Mitarbeiterliste vom Backend laden
   fetchData(): void {
     this.isLoading.set(true);
     this.errorMessage.set('');
@@ -203,23 +156,17 @@ export class EmployeeListComponent {
     });
   }
 
+  // Mitarbeiter löschen nach Bestätigung
   deleteEmployee(employee: Employee): void {
-    const confirmMessage = `Möchten Sie ${employee.firstName} ${employee.lastName} wirklich löschen?`;
-
-    if (!confirm(confirmMessage)) {
-      return;
-    }
+    if (!confirm(`Möchten Sie ${employee.firstName} ${employee.lastName} wirklich löschen?`)) return;
 
     this.employeeService.deleteEmployee(employee.id).subscribe({
       next: () => {
-        this.employeesSignal.update(employees =>
-          employees.filter(e => e.id !== employee.id)
-        );
+        this.employeesSignal.update(list => list.filter(e => e.id !== employee.id));
       },
       error: (err) => {
         console.error('Löschen fehlgeschlagen:', err);
         this.errorMessage.set('Löschen fehlgeschlagen. Bitte erneut versuchen.');
-
         setTimeout(() => this.errorMessage.set(''), 5000);
       }
     });
@@ -233,10 +180,10 @@ export class EmployeeListComponent {
     this.router.navigate(['/employees/edit', id]);
   }
 
+  // Modal öffnen – aktuelle Filter vorladen
   openFilterModal(): void {
-    // Set current active filters in form
-    const filters = this.activeFilters();
-    this.filterForm.patchValue(filters);
+    this.showQualDropdown.set(false);
+    this.filterModel.set({ ...this.activeFilters() });
     this.showFilterModal.set(true);
   }
 
@@ -244,33 +191,29 @@ export class EmployeeListComponent {
     this.showFilterModal.set(false);
   }
 
+  // Qualifikations-Dropdown umschalten
+  toggleQualDropdown(): void {
+    this.showQualDropdown.update(v => !v);
+  }
+
+  // Qualifikation auswählen oder deauswählen
+  selectQualification(name: string): void {
+    this.activeFilters.update(f => ({ ...f, skill: f.skill === name ? '' : name }));
+    this.showQualDropdown.set(false);
+  }
+
+  // Filter aus dem Modal anwenden
   applyFilters(): void {
-    const formValue = this.filterForm.value;
-    this.activeFilters.set({
-      firstName: formValue.firstName || '',
-      lastName: formValue.lastName || '',
-      city: formValue.city || '',
-      postcode: formValue.postcode || '',
-      skill: formValue.skill || ''
-    });
+    this.activeFilters.set({ ...this.filterModel() });
     this.closeFilterModal();
   }
 
+  // Alle Filter zurücksetzen
   resetFilters(): void {
-    this.filterForm.reset({
-      firstName: '',
-      lastName: '',
-      city: '',
-      postcode: '',
-      skill: ''
-    });
-    this.activeFilters.set({
-      firstName: '',
-      lastName: '',
-      city: '',
-      postcode: '',
-      skill: ''
-    });
+    const empty: FilterState = { firstName: '', lastName: '', city: '', postcode: '', skill: '' };
+    this.filterModel.set(empty);
+    this.activeFilters.set(empty);
+    this.showQualDropdown.set(false);
     this.closeFilterModal();
   }
 }

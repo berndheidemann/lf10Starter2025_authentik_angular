@@ -1,2 +1,14 @@
-/* Alle Styles werden jetzt von Bootstrap übernommen */
-/* Hier können bei Bedarf kleine Anpassungen gemacht werden */
+/* Qualifikations-Dropdown Positionierung */
+.qual-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 3;
+  min-width: 220px;
+  margin-top: 4px;
+  padding: 12px;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+  box-shadow: 0 .25rem .5rem rgba(0, 0, 0, .15);
+}
