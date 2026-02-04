@@ -1,0 +1,7 @@
+<app-qualification-list
+  [qualifications]="qualifications()"
+  [canUpdateQualifications]="true"
+  (newQualificationEvent)="onNewQualification($event)"
+  (updateQualificationEvent)="onUpdateQualification($event)"
+  (deleteQualificationEvent)="onDeleteQualification($event)"
+  />

@@ -1,0 +1,26 @@
+<mat-form-field appearance="fill" class="w-100">
+  <mat-label>Skill</mat-label>
+
+  <input
+    matInput
+    [formControl]="control"
+    [matAutocomplete]="auto"
+    (blur)="lostFocus()"
+    placeholder="Tippen oder auswählen…"
+  />
+
+  <mat-autocomplete #auto="matAutocomplete">
+    @for (option of filtered(); track option) {
+      <mat-option [value]="option">
+        {{ option }}
+      </mat-option>
+    }
+
+    @if (canAdd()) {
+      <mat-option (onSelectionChange)="pickAddOption()">
+        + "{{ control.value.trim() }}" hinzufügen
+      </mat-option>
+    }
+  </mat-autocomplete>
+</mat-form-field>
+

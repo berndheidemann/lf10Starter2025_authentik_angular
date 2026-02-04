@@ -122,15 +122,10 @@ export class EmployeeListComponent {
     });
   }
 
-  // Skill-IDs eines Mitarbeiters in Namen umwandeln
+  // Qualifikationsnamen eines Mitarbeiters
   getSkillNames(employee: Employee): string[] {
     if (!employee.skillSet || employee.skillSet.length === 0) return [];
-
-    const qualifications = this.qualificationsSignal();
-    return employee.skillSet.map(id => {
-      const qual = qualifications.find(q => q.id === Number(id));
-      return qual ? qual.skill : `#${id}`;
-    });
+    return employee.skillSet.map(q => q.skill);
   }
 
   // Alle verfügbaren Qualifikationsnamen sortiert (für das Dropdown)
@@ -160,7 +155,7 @@ export class EmployeeListComponent {
   deleteEmployee(employee: Employee): void {
     if (!confirm(`Möchten Sie ${employee.firstName} ${employee.lastName} wirklich löschen?`)) return;
 
-    this.employeeService.deleteEmployee(employee.id).subscribe({
+    this.employeeService.deleteEmployee(employee).subscribe({
       next: () => {
         this.employeesSignal.update(list => list.filter(e => e.id !== employee.id));
       },
@@ -173,11 +168,11 @@ export class EmployeeListComponent {
   }
 
   navigateToAdd(): void {
-    this.router.navigate(['/employees/add']);
+    this.router.navigate(['/editEmployee']);
   }
 
   navigateToEdit(id: number): void {
-    this.router.navigate(['/employees/edit', id]);
+    this.router.navigate(['/editEmployee', id]);
   }
 
   // Modal öffnen – aktuelle Filter vorladen

@@ -1,6 +1,7 @@
+<app-confirmation-popup></app-confirmation-popup>
 <div class="container mt-5">
   <div class="row justify-content-end mb-5">
-    <button class="btn btn-success col-2" (click)="startAddNewQualification()" >+ Qualifikation Anlegen</button>
+    <button type="button" class="btn btn-success col-2" (click)="startAddNewQualification()" >+ Qualifikation Anlegen</button>
   </div>
   <table class="table table-bordered bg-white">
     <thead class="table-secondary">
@@ -15,15 +16,16 @@
       @if (addNewQualification) {
         <tr>
           <td>
-            <input type="text" [formField]="newQualificationForm.skill" />
+<!--            <input type="text" [formField]="newQualificationForm.skill" />-->
+            <app-combobox [options]="missingQualifications()" (valueChanged)="newSkillInputChanged($event)"/>
           </td>
           <td class="text-end">
-            <button class="material-icons btn btn-sm btn-success me-3"
+            <button type="button" class="material-icons btn btn-sm btn-success me-3"
                     (click)="saveNew()">
               save
             </button>
-            <button class="material-icons btn btn-sm btn-danger"
-                    (click)="abortNew()">
+            <button type="button" class="material-icons btn btn-sm btn-danger"
+                    (click)="cancelNew()">
               delete
             </button>
           </td>
@@ -36,7 +38,7 @@
               <input type="text" [formField]="qualificationForm.skill" />
             </td>
             <td class="text-end">
-              <button class="material-icons btn btn-sm btn-success"
+              <button type="button" class="material-icons btn btn-sm btn-success"
                       (click)="saveEdit()">
                 save
               </button>
@@ -48,12 +50,14 @@
             {{qualification.skill}}
           </td>
           <td class="text-end">
-            <button class="material-icons btn btn-sm btn-warning"
+            @if (canUpdateQualifications()) {
+            <button type="button" class="material-icons btn btn-sm btn-warning"
                     (click)="startEdit(qualification)">
               edit
             </button>
-            <button class="material-icons btn btn-sm btn-danger ms-3"
-                    (click)="deleteQualification(qualification)">
+            }
+            <button type="button" class="material-icons btn btn-sm btn-danger ms-3"
+                    (click)="openDeletePopup(qualification)">
               delete
             </button>
           </td>

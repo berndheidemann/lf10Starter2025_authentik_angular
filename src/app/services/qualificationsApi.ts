@@ -4,6 +4,7 @@ import {Qualification} from '../model/qualification';
 import {PostQualificationDTO} from '../model/postQualificationDTO';
 import {Injectable} from '@angular/core';
 import {AuthService} from "../auth.service";
+import {QualificationDto} from "../model/QualificationDto";
 
 @Injectable({providedIn: "root"})
 export class QualificationsApi {
@@ -28,23 +29,21 @@ export class QualificationsApi {
   updateQualification(id: number, skill: string) {
     const token = this.authService.getAccessToken();
     const apiUrl = `${this.baseUrl}/qualifications/${id}`;
-    this.httpClient.put(apiUrl, {skill: skill}, {
+    return this.httpClient.put<PostQualificationDTO>(apiUrl, {skill: skill}, {
       headers: new HttpHeaders()
         .set('Content-Type', 'application/json')
         .set('Authorization', `Bearer ${token}`),
-    }).pipe(catchError((err: HttpErrorResponse) => throwError(() => err)))
-      .subscribe();
+    }).pipe(catchError((err: HttpErrorResponse) => throwError(() => err)));
   }
 
   postQualification(skill: string) {
     const token = this.authService.getAccessToken();
     const apiUrl = `${this.baseUrl}/qualifications`;
-    this.httpClient.post(apiUrl, {skill: skill}, {
+    return this.httpClient.post<PostQualificationDTO>(apiUrl, {skill: skill}, {
       headers: new HttpHeaders()
         .set('Content-Type', 'application/json')
         .set('Authorization', `Bearer ${token}`),
-    }).pipe(catchError((err: HttpErrorResponse) => throwError(() => err)))
-      .subscribe();
+    }).pipe(catchError((err: HttpErrorResponse) => throwError(() => err)));
   }
 
   deleteQualification(qualificationToDelete: Qualification) {

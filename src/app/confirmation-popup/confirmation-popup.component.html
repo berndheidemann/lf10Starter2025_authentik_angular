@@ -1,0 +1,21 @@
+<dialog #confirmationDialoge>
+  <div class="row text-center">
+    <div class="col">
+      <p>{{popUpText}}</p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col">
+      <button class="btn btn-sm btn-danger"
+        (click)="confirmAction()">
+        Ja
+      </button>
+    </div>
+    <div class="col">
+      <button class="btn btn-sm btn-danger"
+      (click)="confirmationDialoge.close()">
+        Nein
+      </button>
+    </div>
+  </div>
+</dialog>
