@@ -6,6 +6,7 @@ import { Employee } from "../model/Employee";
 import { EmployeeService } from "../services/employee.service";
 import { QualificationsApi } from "../services/qualificationsApi";
 import { Qualification } from "../model/qualification";
+import { AuthService } from "../auth.service";
 
 // Filterfelder für die Erweiterte Suche
 interface FilterState {
@@ -108,7 +109,8 @@ export class EmployeeListComponent {
   constructor(
     private employeeService: EmployeeService,
     private qualificationsApi: QualificationsApi,
-    private router: Router
+    private router: Router,
+    private authService: AuthService
   ) {
     this.fetchData();
     this.fetchQualifications();
@@ -173,6 +175,14 @@ export class EmployeeListComponent {
 
   navigateToEdit(id: number): void {
     this.router.navigate(['/editEmployee', id]);
+  }
+
+  navigateToQualifications(): void {
+    this.router.navigate(['/qualification']);
+  }
+
+  logout(): void {
+    this.authService.logout();
   }
 
   // Modal öffnen – aktuelle Filter vorladen
